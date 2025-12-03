@@ -10,10 +10,9 @@ SOAR 스타일의 자동화 시스템을 구축한 팀 프로젝트입니다.
 > 원본 프로젝트 레포:  
 👉 https://github.com/TeamLayer3/AWS-Security-Automation-Project
 
-
 ---
 
-# 📌 1. 프로젝트 개요
+##📌 1. 프로젝트 개요
 
 AWS 환경에서 발생하는 주요 보안 이벤트를 자동으로 탐지하고 즉시 조치하는  
 **End-to-End 자동 대응 플랫폼**입니다.
@@ -27,7 +26,7 @@ AWS 환경에서 발생하는 주요 보안 이벤트를 자동으로 탐지하�
 
 ---
 
-# 📌 2. 제가 담당한 핵심 역할 (요약)
+## 📌 2. 제가 담당한 핵심 역할
 
 프로젝트에서 제가 직접 개발/설계한 부분은 아래와 같습니다.
 
@@ -60,86 +59,146 @@ AWS 환경에서 발생하는 주요 보안 이벤트를 자동으로 탐지하�
 
 ---
 
-# 📌 3. 전체 아키텍처 (개인 정리본)
+## 📌 3. 전체 아키텍처
 
 ```mermaid
 flowchart TD
 
-A[CloudTrail] --> B(EventBridge Rules)
-B --> C1[Detection Lambda]
-C1 --> D1[DynamoDB - State Table]
-C1 --> D2[DynamoDB - Connection IDs]
+A[CloudTrail / VPC Flow / Config / Scanner Logs] --> B(EventBridge Rules)
 
-C1 -->|Incident JSON| E[API Gateway WebSocket]
-E --> F[Security Dashboard]
+B --> C1[Detection Lambda Functions]
+C1 --> D1[DynamoDB - State Table (Sliding Window + Idempotency)]
+C1 --> D2[DynamoDB - WebSocket Connections]
 
-C1 -->|Auto Remediation| G[Remediation Lambda]
-G --> H1[Modify Security Group]
-G --> H2[Save Logs to S3]
+%% Real-time Alert Path
+C1 -->|Structured Incident JSON| E[API Gateway WebSocket]
+E --> F[Real-Time Security Dashboard]
 
----
+%% Auto Remediation Path
+C1 -->|Trigger Action| G[Remediation Lambda Functions]
+G --> H1[Modify Security Group (Quarantine)]
+G --> H2[Block HTTP / Ingress Rules]
+G --> H3[Archive Logs to S3]
+```
 
-# 📌 4. 내가 구현한 주요 탐지 로직 상세
+### 이 아키텍처의 핵심 포인트
 
-## 1) Impossible Travel Login Detection
-
-* 최근 로그인 IP Geo 기반 위치 기록
-* 이전 로그인 위치 vs 신규 위치 거리 계산
-* 이동 속도가 비정상일 경우 FLAG
-
-## 2) CloudTrail Tampering Detection
-
-* StopLogging / DeleteTrail / UpdateTrail 이벤트 감시
-* 로그인 직후 60초 간의 window 내부 tamper 시 HIGH RISK 처리
-
-## 3) DVWA 공격 스캐너 탐지
-
-* 5분 내 요청 개수가 임계값(40,000+) 초과 시 공격으로 판단
-* User-Agent 기반 스캐너 패턴 regex 분석
-
-## 4) SSH World-Open 감지
-
-* 22/TCP + 0.0.0.0/0 + ::/0 규칙 생성 여부 모니터링
-* 반복/다중 시도 시 가중치 기반 위험 레벨 증가
+* **탐지 Lambda 9개 + 자동대응 Lambda 2개**로 구성된 실시간 관제
+* **EventBridge → Lambda → DynamoDB → WebSocket → Dashboard** 전체 흐름을 구현
+* **State Table(Window / Seen Events)** 로 과탐/중복 방지 설계
+* **ACTIONS / EVENTS WebSocket 채널 분리** 구조 (서원이 직접 개선한 부분)
+* Incident 포맷을 직접 통일(SOURCE·REGION·ACTION 등)하여 Dashboard 연동 안정화
 
 ---
 
-# 📌 5. 자동 대응(Playbook) 상세
+## 📌 4. 내가 구현한 주요 탐지 로직 상세
 
-## 🟥 1) OpenSSH World-Open → EC2 Quarantine
+### 1) Impossible Travel Login Detection (불가능한 이동 기반 의심 로그인)
 
-* 위험 규칙 감지 → Quarantine SG 자동 부착
-* 기존 SG 회수 및 ALB 라우팅 재검증
+* 최근 로그인 Geo(IP → 국가/위도/경도) 기록
+* 직전 로그인 좌표와 거리 계산
+* 이동 속도 기반 비정상 여부 판단
+* 멱등성: `eventID` 기반 중복 처리
+* Incident 전송: source=`signin.amazonaws.com`
 
-## 🟧 2) HTTP 공격 감지 → 즉시 Ingress 차단
+### 2) CloudTrail Tampering Detection (트레일 조작 감지)
 
-* DVWA 공격 상황 감지 시 SG 수정
-* WebSocket 대시보드에 실시간 "차단" 알림 전송
+* StopLogging / DeleteTrail / UpdateTrail 관련 이벤트 감시
+* 로그인 직후 60초 이내 시도 시 HIGH RISK 처리
+* CloudTrail 관리 이벤트만 필터링
+* Incident 전송: source=`cloudtrail.amazonaws.com`
 
-## 🟦 3) CloudTrail Tamper → 로그 아카이빙
+### 3) DVWA 공격 스캐너 탐지 (4만+ 요청 패턴 기반)
 
-* tamper 이벤트 발생 시 CloudWatch 로그 S3 저장
-* Incident 테이블 기록 + 알림 전송
+* 5분 내 요청수 Threshold 기반 “스캐너” 판별
+* User-Agent 기반 정규식 탐지 (ZAP / Acunetix 등)
+* WebSocket 실시간 대시보드 전송
+* 필요 시 HTTP 차단 Remediation로 연결됨
+* 
+### 4) SSH World-Open 감지 (0.0.0.0/0 SSH 위험 규칙)
+
+* AuthorizeSecurityGroupIngress 이벤트 감지
+* 22/TCP + 0.0.0.0/0 패턴 분석
+* 동일 계정 내 반복 개방 이벤트까지 처리
+* Incident 전송 + 자동격리로 연결됨
+
+### 5) Access Key 이상 사용 탐지 (GeoASN 기반)
+
+* Access Key가 평소와 다른 ASN/국가에서 사용될 때 탐지
+* IP 기반 Geo/ASN 조회
+* 최근 사용 기록과 비교
+* AWS IAM 사용자 도난 가능성 체크
+
+### 6) 새로운 AccessKey 생성 감지 (신규 사용자 위험)
+
+* CreateAccessKey 이벤트 기반
+* 계정 남용/내부자 위험 탐지
+* Incident 포맷 표준화 후 Dashboard로 전송
+
+### 7) Config Compliance Change 기반 정책 위반 감지
+
+* AWS Config의 Compliance 변동 때 HIGH RISK 변경 감지
+* 위반 리소스 상세 정보 추출
+* Incident Dashboard 전송
+
+### 8) Security-Unusual-Region Login (평소 사용하지 않는 리전 접근)
+
+* 최근 사용 Region 목록 추적
+* 비정상 Region에서 로그인 발생 시 경고
+* DynamoDB 기반 Sliding Window 사용
+
+### 9) Positive Feedback (위험 규칙 삭제) → 보안 강화 이벤트 알림
+
+* `RevokeSecurityGroupIngress`, `DeleteSecurityGroup` 감지
+* SSH 월드오픈을 제거한 “양성 행동”만 필터링
+* Dashboard에 “보안 강화 이벤트” 노출
 
 ---
 
-# 📌 6. Incident 구조 (Dashboard로 전송된 데이터)
+## 📌 5. 자동 대응(Playbook)
+
+### 1) OpenSSH World-Open → EC2 Quarantine 자동격리 (sg-open-ssh-ec2-remediation)
+
+* SSH 0.0.0.0/0 감지
+* 해당 인스턴스의 ENI 조회
+* 기존 SG 제거 → Quarantine SG 자동 부착
+* Real-time Dashboard에 “격리 성공” 표시
+* Incident 전송: action=`QuarantineInstance`
+
+### 2) DVWA 공격 감지 → HTTP 차단 (dvwa-remediation)
+
+* 공격 패턴 감지 후 Remediation 호출
+* SG의 80/443 ingress 차단
+* 공격 IP 기반 로그 저장
+* Dashboard에 “HTTP 차단 완료” 전송
+* Action: `BlockHttpIngress`
+* 
+### 3) CloudTrail Tamper → 로그 스냅샷 S3 저장
+
+* tamper 이벤트 감지 후 Remediation 연결
+* CloudWatch 로그를 JSON 파일로 S3 저장(Archive)
+* Dashboard에 알림 전송
+* Action: `ArchiveTrailLogs`
+
+---
+
+## 📌 6. Incident 구조
 
 ```json
 {
-  "type": "remediation",
+  "type": "incident",
+  "event": "QuarantineInstance",
   "source": "ec2",
   "region": "us-east-1",
-  "action": "QuarantineInstance",
-  "target": "i-0ac2cbc9d6a8afc46",
+  "resource_id": "i-0ac2cbc9d6a8afc46",
   "status": "EXECUTED",
-  "time": "2025-11-28T08:30:00Z"
+  "severity": "HIGH",
+  "timestamp": "2025-11-28T08:30:00Z"
 }
 ```
-
 ---
 
-# 📌 7. 문제 해결 경험 (Troubleshooting)
+## 📌 7. 문제 해결 경험 (Troubleshooting)
 
 ### ⚠ WebSocket undefined 문제 해결
 
@@ -159,7 +218,7 @@ G --> H2[Save Logs to S3]
 
 ---
 
-# 📌 8. 기술 스택
+## 📌 8. 기술 스택
 
 | 구분         | 기술                                   |
 | ---------- | ---------------------------------------- |
@@ -173,13 +232,13 @@ G --> H2[Save Logs to S3]
 
 ---
 
-# 📌 9. 원본 팀 프로젝트 링크
+## 📌 9. 원본 팀 프로젝트 링크
 
 👉 [https://github.com/TeamLayer3/AWS-Security-Automation-Project](https://github.com/TeamLayer3/AWS-Security-Automation-Project)
 
 ---
 
-# 📌 10. About Me
+## 📌 10. About Me
 
 **윤서원(Seowon Yoon)**
 Seeking : Cloud Security / Security Automation / SOC / DevSecOps
