@@ -241,7 +241,7 @@ G --> H3[Archive Logs to S3]
 ## 📌 10. About Me
 
 **윤서원(Seowon Yoon)**
-Seeking : Cloud Security / Security Automation / SOC / DevSecOps
+Seeking : Cloud Security / Security Automation / SOC / Privacy Manager
 Email : lucielyoon1129@naver.com / seowon6766@gmail.com
 GitHub : [https://github.com/Wonyoon-Luciel](https://github.com/Wonyoon-Luciel)
 velog : https://velog.io/@seowon6766
