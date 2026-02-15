@@ -67,7 +67,7 @@ flowchart TD
 A[CloudTrail / VPC Flow / Config / Scanner Logs] --> B(EventBridge Rules)
 
 B --> C1[Detection Lambda Functions]
-C1 --> D1[DynamoDB - State Table (Sliding Window + Idempotency)]
+C1 --> D1[DynamoDB - State Table Sliding Window + Idempotency]
 C1 --> D2[DynamoDB - WebSocket Connections]
 
 %% Real-time Alert Path
@@ -76,7 +76,7 @@ E --> F[Real-Time Security Dashboard]
 
 %% Auto Remediation Path
 C1 -->|Trigger Action| G[Remediation Lambda Functions]
-G --> H1[Modify Security Group (Quarantine)]
+G --> H1[Modify Security Group Quarantine]
 G --> H2[Block HTTP / Ingress Rules]
 G --> H3[Archive Logs to S3]
 ```
