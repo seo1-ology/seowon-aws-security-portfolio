@@ -7,15 +7,14 @@
 **보안 이벤트 실시간 탐지 → 알림 → 자동대응(Quarantine / Block / Logging)** 까지 수행하는  
 SOAR 스타일의 자동화 시스템을 구축한 팀 프로젝트입니다.
 
-> 원본 프로젝트 레포 : 
-👉 https://github.com/TeamLayer3/AWS-Security-Automation-Project
+► [Project Dashboard](https://seowon-aws-security-portfolio.vercel.app/)  
+► [원본 프로젝트 레포](https://github.com/TeamLayer3/AWS-Security-Automation-Project) 
 
 ---
 
-##📌 1. 프로젝트 개요
+## 📌 1. 프로젝트 개요
 
-AWS 환경에서 발생하는 주요 보안 이벤트를 자동으로 탐지하고 즉시 조치하는  
-**End-to-End 자동 대응 플랫폼**입니다.
+AWS 환경에서 발생하는 주요 보안 이벤트를 자동으로 탐지하고 즉시 조치하는 **End-to-End 자동 대응 플랫폼**입니다.
 
 ### 구축 목표
 - CloudTrail 기반의 실시간 탐지
@@ -114,7 +113,7 @@ G --> H3[Archive Logs to S3]
 * User-Agent 기반 정규식 탐지 (ZAP / Acunetix 등)
 * WebSocket 실시간 대시보드 전송
 * 필요 시 HTTP 차단 Remediation로 연결됨
-* 
+  
 ### 4) SSH World-Open 감지 (0.0.0.0/0 SSH 위험 규칙)
 
 * AuthorizeSecurityGroupIngress 이벤트 감지
@@ -234,14 +233,15 @@ G --> H3[Archive Logs to S3]
 
 ## 📌 9. 원본 팀 프로젝트 링크
 
-👉 [https://github.com/TeamLayer3/AWS-Security-Automation-Project](https://github.com/TeamLayer3/AWS-Security-Automation-Project)
+[AWS-Security-Automation-Project](https://github.com/TeamLayer3/AWS-Security-Automation-Project)
 
 ---
 
 ## 📌 10. About Me
 
-**윤서원(Seowon Yoon)**
-Seeking : Cloud Security / Security Automation / SOC / Privacy Manager
-Email : lucielyoon1129@naver.com / seowon6766@gmail.com
-GitHub : [https://github.com/Wonyoon-Luciel](https://github.com/Wonyoon-Luciel)
-velog : https://velog.io/@seowon6766
+**윤서원(Seowon Yoon)**  
+Seeking : Privacy Manager / Security Automation / SOC  
+Portfolio : https://seo1-ology.github.io/  
+GitHub : [https://github.com/Wonyoon-Luciel](https://github.com/Wonyoon-Luciel)  
+velog : https://velog.io/@seowon6766  
+Email : seowon6766@gmail.com / lucielyoon1129@naver.com  
