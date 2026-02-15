@@ -10,8 +10,7 @@ AWS 환경에서 발생하는 보안 위협을 **실시간(Real-time)** 으로 �
 
 **AWS EC2 인스턴스**에 대시보드를 배포해 둠. 아래 링크를 클릭하면 즉시 확인 가능함
 
-### [대시보드 접속하기 (Click)](http://54.235.30.142/dashboard/)
-**(URL: http://54.235.30.142/dashboard/)**
+### [대시보드 접속하기 (Click)](https://seowon-aws-security-portfolio.vercel.app/)
 
 ---
 
